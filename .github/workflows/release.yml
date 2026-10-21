@@ -39,6 +39,13 @@ jobs:
           }
           7z x mpv.7z -ompv-package
           if ($LASTEXITCODE -ne 0) { throw 'libmpv extraction failed.' }
+          # The development archive contains the DLL but omits license files.
+          # Include the GPL text from the mpv source tree in the distribution.
+          $mpvDll = Get-ChildItem ./mpv-package -File -Filter '*mpv*.dll' | Select-Object -First 1
+          if (-not $mpvDll) { throw 'libmpv DLL not found in archive.' }
+          $mpvRef = 'master'
+          if ($mpvDll.VersionInfo.FileVersion -match '-g([0-9a-f]{7,40})') { $mpvRef = $Matches[1] }
+          Invoke-WebRequest "https://raw.githubusercontent.com/mpv-player/mpv/$mpvRef/LICENSE.GPL" -OutFile ./mpv-package/LICENSE.GPL
           ./package-windows.ps1 -SkipBuild -MpvDirectory ./mpv-package -MpvSourceUrl $release.html_url
       - name: Test packaged installation
         shell: pwsh
